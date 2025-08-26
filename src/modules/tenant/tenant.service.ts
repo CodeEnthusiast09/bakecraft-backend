@@ -38,7 +38,7 @@ export class TenantService implements OnModuleInit {
     const { company_name, company_email, company_phone_number } =
       createTenantDto;
 
-    const tenantSlug = company_name.toLowerCase().replace(/\s+/g, '_');
+    const tenantSlug = company_name.toLowerCase().replace(/\s+/g, '-');
 
     const dbName = `tenant_${tenantSlug}`;
 

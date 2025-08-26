@@ -13,6 +13,7 @@ import { InitializeSubscriptionResponseDto } from './dtos/responses/init-subscri
 import { SubscriptionResponseDto } from './dtos/responses/subscription-response.dto';
 import { PaystackWebhookPayload } from 'src/types/paystack-api-types';
 import { WebhookGuard } from 'src/common/guards/webhook.guard';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('subscriptions')
 export class SubscriptionController {
@@ -45,6 +46,7 @@ export class SubscriptionController {
   }
 
   @Post('webhook')
+  @Public()
   @UseGuards(WebhookGuard)
   async handleWebhook(
     @Body() payload: PaystackWebhookPayload,

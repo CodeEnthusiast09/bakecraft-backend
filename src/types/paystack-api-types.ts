@@ -30,8 +30,8 @@ export interface SubscriptionData {
   next_payment_date: string;
   open_invoice: string;
   id: number;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SubscriptionResponse {
@@ -230,11 +230,11 @@ export interface PaystackPlan {
   hosted_page_url: string;
   hosted_page_summary: string;
   currency: PaystackCurrency;
-  migrate: string;
+  migrate?: string;
   id: number;
   integration: number;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface PaystackMeta {

@@ -3,7 +3,7 @@ import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 export class InitializeSubscriptionDto {
   @IsNotEmpty()
   @IsString()
-  tenantSlug: string;
+  tenant_slug: string;
 
   @IsNotEmpty()
   @IsString()

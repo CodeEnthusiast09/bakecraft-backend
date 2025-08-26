@@ -103,18 +103,18 @@ export class PaystackClient {
    */
   async initializeTransaction(
     customerEmail: string,
-    planId: string,
+    planCode: string,
     transactionId: string,
   ): Promise<PaystackPaymentSessionResult> {
     try {
-      const planCost = await this.getPlanCost(planId);
+      // const planCost = await this.getPlanCost(planId);
       const { data } =
         await this.httpInstance.post<PaystackPaymentSessionResponse>(
           '/transaction/initialize',
           {
             email: customerEmail,
-            amount: planCost,
-            reference: planId + '__' + transactionId,
+            amount: planCode,
+            reference: transactionId,
             callback_url: this.checkoutSuccessUrl + '?' + transactionId, // This is to add the transactionId as a query parameter to the checkoutSuccessUrl
           },
         );
@@ -137,36 +137,6 @@ export class PaystackClient {
    * This method is to charge a customer and subscribe them to a plan.
    * Only card payment is allowed. Other payment methods can not be charged automatically
    */
-  // async initializeSubscription(
-  //   customerEmail: string,
-  //   planId: string,
-  //   transactionId: string,
-  // ): Promise<PaystackPaymentSessionResult> {
-  //   try {
-  //     const { data } =
-  //       await this.httpInstance.post<PaystackPaymentSessionResponse>(
-  //         '/transaction/initialize',
-  //         {
-  //           email: customerEmail,
-  //           plan: planId,
-  //           reference: transactionId,
-  //           callback_url: this.checkoutSuccessUrl + '?' + transactionId,
-  //         },
-  //       );
-
-  //     return {
-  //       authorizationUrl: data.data.authorization_url,
-  //       accessCode: data.data.access_code,
-  //       reference: data.data.reference,
-  //     };
-  //   } catch (e) {
-  //     this.handleError(e);
-  //     throw new InternalServerErrorException(
-  //       'Unreachable code after handleError',
-  //     );
-  //   }
-  // }
-
   async initializeSubscription(
     customerEmail: string,
     planId: string,
@@ -180,7 +150,9 @@ export class PaystackClient {
         {
           email: customerEmail,
           amount,
+          plan: planId,
           reference: transactionId,
+          channels: ['card'],
           callback_url: `${this.checkoutSuccessUrl}?transactionId=${transactionId}`,
         },
       );
@@ -222,6 +194,12 @@ export class PaystackClient {
     planId: string,
     authorizationCode: string,
   ): Promise<SubscriptionData> {
+    console.log({
+      customer: customerCode,
+      plan: planId,
+      authorization: authorizationCode,
+    });
+
     const { data } = await this.httpInstance.post<SubscriptionResponse>(
       '/subscription',
       {

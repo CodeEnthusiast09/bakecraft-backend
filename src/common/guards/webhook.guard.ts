@@ -33,17 +33,18 @@ export class WebhookGuard implements CanActivate {
     //   ? request.body
     //   : Buffer.from(request.body || '');
 
-    const rawBody = Buffer.isBuffer(request.body)
-      ? request.body
-      : Buffer.from(JSON.stringify(request.body) || '');
+    // const rawBody = Buffer.isBuffer(request.body)
+    //   ? request.body
+    //   : Buffer.from(JSON.stringify(request.body) || '');
 
     const hash = crypto
       .createHmac('sha512', secret)
-      .update(rawBody)
+      // .update(rawBody)
+      .update(JSON.stringify(request.body))
       .digest('hex');
 
     console.log('🔹 Computed Hash:', hash);
-    console.log('🔹 Raw Body (string):', rawBody.toString());
+    // console.log('🔹 Raw Body (string):', rawBody.toString());
 
     const signatureBuffer = Buffer.from(signature);
 

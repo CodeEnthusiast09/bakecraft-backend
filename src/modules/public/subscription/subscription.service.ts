@@ -14,6 +14,7 @@ import { SubscriptionStatus, TenantStatus } from '../../../common/enums';
 import { v4 as uuidv4 } from 'uuid';
 import {
   PaystackCustomer,
+  PaystackPlan,
   PaystackWebhookPayload,
   ResponseData,
   SubscriptionData,
@@ -52,11 +53,11 @@ export class SubscriptionService {
   async initializeSubscription(
     initializeSubscriptionDto: InitializeSubscriptionDto,
   ): Promise<InitializeSubscriptionResponseDto> {
-    const { tenantSlug, plan_code, email } = initializeSubscriptionDto;
+    const { tenant_slug, plan_code, email } = initializeSubscriptionDto;
 
     // Find tenant
     const tenant = await this.tenantRepository.findOne({
-      where: { slug: tenantSlug },
+      where: { slug: tenant_slug },
       relations: ['subscription'],
     });
 
@@ -117,7 +118,7 @@ export class SubscriptionService {
     // Initialize payment with Paystack
     const paymentSession = await this.paystackClient.initializeSubscription(
       email,
-      plan.paystack_plan_id || plan.plan_code,
+      plan.plan_code,
       reference,
     );
 
@@ -137,9 +138,12 @@ export class SubscriptionService {
       case PaystackEvents.PAYMENT_SUCCESSFUL: // charge.success
         await this.handleSuccessfulPayment(data);
         break;
-      // case PaystackEvents.SUBSCRIPTION_CREATE:
-      //   await this.handleSubscriptionCreated(data);
-      //   break;
+      case PaystackEvents.SUBSCRIPTION_CREATE:
+        await this.handleSubscriptionCreated(data);
+        break;
+      case PaystackEvents.INVOICE_UPDATED:
+        await this.handleInvoiceUpdated(data);
+        break;
       case PaystackEvents.SUBSCRIPTION_NOT_RENEW:
         await this.handleSubscriptionDisabled(data);
         break;
@@ -153,14 +157,13 @@ export class SubscriptionService {
 
   private async handleSuccessfulPayment(data: PaystackWebhookPayload['data']) {
     const reference = data.reference;
+
     if (!reference) {
       console.error('Transaction webhook has no reference');
       return;
     }
 
-    console.log(
-      `[v0] Processing successful payment for reference: ${reference}`,
-    );
+    console.log(`Processing successful payment for reference: ${reference}`);
 
     const subscription = await this.subscriptionRepository.findOne({
       where: { reference },
@@ -168,9 +171,7 @@ export class SubscriptionService {
     });
 
     if (!subscription || subscription.status !== SubscriptionStatus.PENDING) {
-      console.log(
-        `[v0] No pending subscription found for reference: ${reference}`,
-      );
+      console.log(`No pending subscription found for reference: ${reference}`);
       return;
     }
 
@@ -178,7 +179,7 @@ export class SubscriptionService {
     let transaction: ResponseData;
     try {
       transaction = await this.paystackClient.verifyTransaction(reference);
-      console.log(`[v0] Transaction verified successfully`);
+      console.log(`Transaction verified successfully`);
     } catch (err: unknown) {
       if (err instanceof Error) {
         console.error(`Failed to verify transaction: ${err.message}`);
@@ -189,56 +190,174 @@ export class SubscriptionService {
     }
 
     const authorizationCode = transaction.authorization?.authorization_code;
+
+    console.log(authorizationCode);
+
     if (!authorizationCode) {
       console.error('No authorization_code in transaction verification');
       return;
     }
 
-    // Create subscription in Paystack
-    let paystackSubscription: SubscriptionData;
+    // Since we initialized with a plan, Paystack automatically created a subscription
+    // Let's try to find it by fetching customer subscriptions
+
+    let paystackSubscriptions: SubscriptionData[] = [];
+
+    let customerSubscription: SubscriptionData | undefined;
+
     try {
-      paystackSubscription = await this.paystackClient.createSubscription(
-        subscription.customer_code,
-        subscription.plan.paystack_plan_id || subscription.plan.plan_code,
-        authorizationCode,
+      const subscriptionsResult = await this.paystackClient.listSubscriptions(
+        subscription.customer_email,
       );
+      paystackSubscriptions = subscriptionsResult || [];
+
       console.log(
-        `[v0] Paystack subscription created: ${paystackSubscription.subscription_code}`,
+        `Found ${paystackSubscriptions.length} subscriptions for customer`,
       );
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error(`Failed to create Paystack subscription: ${err.message}`);
+
+      customerSubscription = paystackSubscriptions.find((sub) => {
+        const customerPlans =
+          sub.plan.plan_code === subscription.plan.plan_code;
+
+        const customerAuth =
+          sub.authorization.authorization_code === authorizationCode;
+
+        return customerPlans && customerAuth;
+      });
+
+      if (customerSubscription) {
+        console.log(
+          `Found matching subscription: ${customerSubscription.subscription_code}`,
+        );
       } else {
-        console.error('Failed to create Paystack subscription', err);
+        console.log('No matching subscription found in Paystack');
       }
-      return;
+    } catch (err: unknown) {
+      console.error('Failed to fetch customer subscriptions:', err);
     }
 
-    // Update DB subscription
-    subscription.status = SubscriptionStatus.ACTIVE;
-    subscription.subscription_code = paystackSubscription.subscription_code;
-    subscription.authorization_code = authorizationCode;
-    subscription.current_period_start = new Date(
-      paystackSubscription.created_at,
-    );
-    subscription.next_payment_date = new Date(
-      paystackSubscription.next_payment_date,
-    );
+    // Calculate period dates based on plan interval
+    const currentPeriodStart = new Date();
+    const currentPeriodEnd = new Date();
+    const nextPaymentDate = new Date();
 
+    // Get plan details to determine interval
+    let planDetails: PaystackPlan;
+    try {
+      planDetails = await this.paystackClient.getPlan(
+        subscription.plan.plan_code,
+      );
+      const planInterval = planDetails.interval || 'monthly';
+
+      console.log(`Plan interval: ${planInterval}`);
+
+      switch (planInterval.toLowerCase()) {
+        case 'daily':
+          currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 1);
+          nextPaymentDate.setDate(nextPaymentDate.getDate() + 1);
+          break;
+        case 'weekly':
+          currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 7);
+          nextPaymentDate.setDate(nextPaymentDate.getDate() + 7);
+          break;
+        case 'monthly':
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+          nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+          break;
+        case 'quarterly':
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 3);
+          nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 3);
+          break;
+        case 'biannually':
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 6);
+          nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 6);
+          break;
+        case 'annually':
+          currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+          nextPaymentDate.setFullYear(nextPaymentDate.getFullYear() + 1);
+          break;
+        default:
+          // Default to monthly
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+          nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+      }
+    } catch (err) {
+      console.error(
+        'Failed to get plan details, defaulting to monthly interval:',
+        err,
+      );
+      // Default to monthly
+      currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+    }
+
+    // Update all subscription fields
+    subscription.status = SubscriptionStatus.ACTIVE;
+    subscription.authorization_code = authorizationCode;
+    subscription.current_period_start = currentPeriodStart;
+    subscription.current_period_end = currentPeriodEnd;
+    subscription.next_payment_date = nextPaymentDate;
+
+    // Use Paystack subscription data if available (more accurate)
+    if (customerSubscription) {
+      subscription.subscription_code = customerSubscription.subscription_code;
+
+      if (customerSubscription.next_payment_date) {
+        subscription.next_payment_date = new Date(
+          customerSubscription.next_payment_date,
+        );
+      }
+      if (customerSubscription.createdAt) {
+        subscription.current_period_start = new Date(
+          customerSubscription.createdAt,
+        );
+      }
+    }
+
+    // Add metadata from the transaction/webhook
+    if (data.metadata) {
+      subscription.metadata = data.metadata;
+    } else if (transaction.metadata) {
+      subscription.metadata = transaction.metadata;
+    }
+
+    // Save the updated subscription
     await this.subscriptionRepository.save(subscription);
 
-    // Update tenant status
+    // Update tenant status to ACTIVE
     subscription.tenant.status = TenantStatus.ACTIVE;
     await this.tenantRepository.save(subscription.tenant);
+
+    console.log('=== SUBSCRIPTION UPDATED ===');
+    console.log(`Tenant: ${subscription.tenant.slug}`);
+    console.log(`Status: ${subscription.status}`);
+    console.log(
+      `Subscription Code: ${subscription.subscription_code || 'Not available'}`,
+    );
+    console.log(`Authorization Code: ${subscription.authorization_code}`);
+    console.log(
+      `Current Period Start: ${subscription.current_period_start?.toISOString?.() ?? subscription.current_period_start}`,
+    );
+    console.log(
+      `Current Period End: ${subscription.current_period_end?.toISOString?.() ?? subscription.current_period_end}`,
+    );
+    console.log(
+      `Next Payment Date: ${subscription.next_payment_date?.toISOString?.() ?? subscription.next_payment_date}`,
+    );
+    console.log('=== END SUBSCRIPTION UPDATE ===');
   }
 
   private async handleSubscriptionCreated(
     data: PaystackWebhookPayload['data'],
   ): Promise<void> {
     if (!data.reference) {
-      console.error('No reference found in subscription created webhook data');
+      console.error('Transaction webhook has no reference');
       return;
     }
+
+    console.log(
+      `Processing successful payment for reference: ${data.reference}`,
+    );
 
     const subscription = await this.subscriptionRepository.findOne({
       where: { reference: data.reference },
@@ -247,28 +366,132 @@ export class SubscriptionService {
 
     if (subscription) {
       subscription.status = SubscriptionStatus.ACTIVE;
+
       if (data.subscription_code) {
         subscription.subscription_code = data.subscription_code;
       }
+
       if (data.authorization?.authorization_code) {
         subscription.authorization_code = data.authorization.authorization_code;
       }
-      if (data.created_at) {
-        subscription.current_period_start = new Date(data.created_at);
+
+      if (data.createdAt) {
+        subscription.current_period_start = new Date(data.createdAt);
       }
+
       if (data.next_payment_date) {
         subscription.next_payment_date = new Date(data.next_payment_date);
+      }
+
+      if (subscription.next_payment_date) {
+        subscription.current_period_end = new Date(
+          subscription.next_payment_date.getTime() - 24 * 60 * 60 * 1000,
+        ); // Day before next payment
       }
 
       await this.subscriptionRepository.save(subscription);
 
       // Update tenant status
       subscription.tenant.status = TenantStatus.ACTIVE;
+
       await this.tenantRepository.save(subscription.tenant);
 
       console.log(
-        `[v0] Subscription activated for tenant: ${subscription.tenant.slug}`,
+        `Subscription created and tenant activated: ${subscription.tenant.slug}`,
       );
+    }
+  }
+
+  private async handleInvoiceUpdated(
+    data: PaystackWebhookPayload['data'],
+  ): Promise<void> {
+    console.log(`Processing invoice update for reference: ${data.reference}`);
+
+    // Find subscription by reference or subscription_code
+    const subscription = await this.subscriptionRepository.findOne({
+      where: [
+        { reference: data.reference },
+        ...(data.subscription_code
+          ? [{ subscription_code: data.subscription_code }]
+          : []),
+      ],
+      relations: ['tenant', 'plan'],
+    });
+
+    if (!subscription) {
+      console.log(
+        `No subscription found for invoice update: ${data.reference}`,
+      );
+      return;
+    }
+
+    // Update subscription fields if they exist in the invoice data
+    let updated = false;
+
+    if (
+      data.subscription_code &&
+      data.subscription_code !== subscription.subscription_code
+    ) {
+      subscription.subscription_code = data.subscription_code;
+      updated = true;
+    }
+
+    if (
+      data.authorization?.authorization_code &&
+      data.authorization.authorization_code !== subscription.authorization_code
+    ) {
+      subscription.authorization_code = data.authorization.authorization_code;
+      updated = true;
+    }
+
+    if (data.next_payment_date) {
+      const newNextPaymentDate = new Date(data.next_payment_date);
+      if (
+        !subscription.next_payment_date ||
+        newNextPaymentDate.getTime() !==
+          subscription.next_payment_date.getTime()
+      ) {
+        subscription.next_payment_date = newNextPaymentDate;
+
+        // Update current period end to be day before next payment
+        subscription.current_period_end = new Date(
+          newNextPaymentDate.getTime() - 24 * 60 * 60 * 1000,
+        );
+        updated = true;
+      }
+    }
+
+    if (data.metadata) {
+      subscription.metadata = data.metadata;
+      updated = true;
+    }
+
+    // Check if subscription status needs updating based on invoice status
+    // This is useful for cases where subscription status changes
+    if (
+      data.status === 'success' &&
+      subscription.status !== SubscriptionStatus.ACTIVE
+    ) {
+      subscription.status = SubscriptionStatus.ACTIVE;
+      subscription.tenant.status = TenantStatus.ACTIVE;
+      await this.tenantRepository.save(subscription.tenant);
+      updated = true;
+    }
+
+    if (updated) {
+      await this.subscriptionRepository.save(subscription);
+      console.log(
+        `Subscription updated from invoice webhook: ${subscription.id}`,
+      );
+      console.log(
+        `Next payment date: ${
+          subscription.next_payment_date
+            ? subscription.next_payment_date.toISOString()
+            : 'null'
+        }`,
+      );
+    } else {
+      console.log(`No updates needed for subscription: ${subscription.id}`);
     }
   }
 
