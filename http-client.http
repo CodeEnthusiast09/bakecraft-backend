@@ -1,0 +1,80 @@
+### GET ENV VARIABLES
+
+GET http://localhost:3000/auth/env
+
+
+### Update User Profile
+
+PUT http://localhost:3000/auth/update/4
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoiYmx1ZWxpbmRhNjE4QGNvZGVtYWlsMS5jb20iLCJpYXQiOjE3NTEzNTc1MDEsImV4cCI6MTc1MTM2MTEwMX0.f0iIbwRli6_kgKLdDxIfrNydd_MJvwaWBwOJLt68tl4
+
+{
+    "firstName": "Kirilov",
+    "lastName": "Dimovska",
+    "email": "kirildimov@plusfieldzone.com",
+    "role": "WORKER"
+}
+
+
+### Signup User
+
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoiYmx1ZWxpbmRhNjE4QGNvZGVtYWlsMS5jb20iLCJpYXQiOjE3NTEzNTc1MDEsImV4cCI6MTc1MTM2MTEwMX0.f0iIbwRli6_kgKLdDxIfrNydd_MJvwaWBwOJLt68tl4
+
+{
+    "firstName": "Kiril",
+    "lastName": "Dimov",
+    "email": "kirildimov@plusfieldzone.com",
+    "role": "WORKER"
+}
+
+### Login User
+
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "bluelinda618@codemail1.com",
+    "password": "mypassword123"
+}
+
+ #"email": "admin@staffhub.com",
+ # "password": "mypassword123"
+ # "password": "StrngPwd_123"
+
+### Send Email
+
+POST http://localhost:3000/tenants/e9399241-db00-447d-b206-5d155b4a361c/email/send-email
+Content-Type: application/json
+x-api-key: cbaf3b6f-8c16-4066-9107-eb270a2bb3ba
+
+{
+  "recipients": ["obrienadedapo09@gmail.com"],
+  "subject": "Test Email",
+  "html": "Rlxk",
+  "text": "This is a test email sent from the Nestjs application. It is sent using the Nodemailer package."
+}
+
+
+### adeniyiroqeebat001@gmail.com
+
+### RESET PASSWORD
+
+POST http://localhost:3000/auth/reset-password
+Content-Type: application/json
+
+{
+ "email": "yaminahouti@taptoplab.com"
+}
+
+### Activate Account
+
+POST http://localhost:3000/auth/activate
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImtpcmlsZGltb3ZAcGx1c2ZpZWxkem9uZS5jb20iLCJ0eXBlIjoiYWN0aXZhdGlvbiIsImlhdCI6MTc1MTM1NzUxOCwiZXhwIjoxNzUxMzYxMTE4fQ.x27smIBglmg9t0YCUMncML6M2NdrM3mAZ-N13OXdXTw",
+  "password": "mypassword123"
+}
