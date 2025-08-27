@@ -219,10 +219,7 @@ export class SubscriptionService {
         const customerPlans =
           sub.plan.plan_code === subscription.plan.plan_code;
 
-        const customerAuth =
-          sub.authorization.authorization_code === authorizationCode;
-
-        return customerPlans && customerAuth;
+        return customerPlans;
       });
 
       if (customerSubscription) {
@@ -312,6 +309,13 @@ export class SubscriptionService {
           customerSubscription.createdAt,
         );
       }
+    } else if (paystackSubscriptions.length > 0) {
+      // fallback: pick the first one if nothing matched but Paystack returned subs
+      subscription.subscription_code =
+        paystackSubscriptions[0].subscription_code;
+      console.log(
+        `Fallback: using subscription_code from Paystack: ${subscription.subscription_code}`,
+      );
     }
 
     // Add metadata from the transaction/webhook
@@ -350,22 +354,43 @@ export class SubscriptionService {
   private async handleSubscriptionCreated(
     data: PaystackWebhookPayload['data'],
   ): Promise<void> {
-    if (!data.reference) {
-      console.error('Transaction webhook has no reference');
+    // For subscription.create events, we need to find the subscription differently
+    // since there might not be a reference field. Try multiple approaches:
+
+    let subscription: Subscription | null = null;
+
+    // Try by subscription_code first (most reliable for subscription events)
+
+    if (data.subscription_code) {
+      console.log(`Subscription code: ${data.subscription_code}`);
+      subscription = await this.subscriptionRepository.findOne({
+        where: { subscription_code: data.subscription_code },
+        relations: ['tenant', 'plan'],
+      });
+    }
+
+    if (!subscription && data.customer?.email) {
+      subscription = await this.subscriptionRepository.findOne({
+        where: { customer_email: data.customer.email },
+        relations: ['tenant', 'plan'],
+      });
+    }
+
+    if (!subscription) {
+      console.log(`No subscription found for subscription.create event`);
+      console.log(`Subscription code: ${data.subscription_code}`);
+      console.log(`Reference: ${data.reference || 'Not provided'}`);
+      console.log(`Customer email: ${data.customer?.email || 'Not provided'}`);
       return;
     }
 
-    console.log(
-      `Processing successful payment for reference: ${data.reference}`,
-    );
-
-    const subscription = await this.subscriptionRepository.findOne({
-      where: { reference: data.reference },
-      relations: ['tenant'],
-    });
+    if (!subscription) {
+      console.log(`No subscription found for reference: ${data.reference}`);
+      return;
+    }
 
     if (subscription) {
-      subscription.status = SubscriptionStatus.ACTIVE;
+      // subscription.status = SubscriptionStatus.ACTIVE;
 
       if (data.subscription_code) {
         subscription.subscription_code = data.subscription_code;
@@ -392,13 +417,16 @@ export class SubscriptionService {
       await this.subscriptionRepository.save(subscription);
 
       // Update tenant status
-      subscription.tenant.status = TenantStatus.ACTIVE;
+      // subscription.tenant.status = TenantStatus.ACTIVE;
 
-      await this.tenantRepository.save(subscription.tenant);
+      // await this.tenantRepository.save(subscription.tenant);
 
       console.log(
         `Subscription created and tenant activated: ${subscription.tenant.slug}`,
       );
+    } else if (!data.reference) {
+      console.error('Transaction webhook has no reference');
+      return;
     }
   }
 

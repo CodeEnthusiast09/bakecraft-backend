@@ -153,7 +153,8 @@ export class PaystackClient {
           plan: planId,
           reference: transactionId,
           channels: ['card'],
-          callback_url: `${this.checkoutSuccessUrl}?transactionId=${transactionId}`,
+          callback_url: `${this.checkoutSuccessUrl}`,
+          // callback_url: `${this.checkoutSuccessUrl}?transactionId=${transactionId}`,
         },
       );
 
