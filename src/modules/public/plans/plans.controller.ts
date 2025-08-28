@@ -1,15 +1,20 @@
 import { Controller, Get, Post, HttpCode, HttpStatus } from '@nestjs/common';
 import { PlanService } from './plans.service';
 import { PlanResponseDto } from '../subscription/dtos/responses/plan-response.dto';
+import { ApiResponse, successResponse } from 'src/common/utils/response.helper';
 
 @Controller('plans')
 export class PlanController {
   constructor(private readonly planService: PlanService) {}
 
   @Get()
-  async getAllPlans(): Promise<PlanResponseDto[]> {
+  async getAllPlans(): Promise<ApiResponse<PlanResponseDto[]>> {
     const plans = await this.planService.findAll();
-    return plans.map((plan) => new PlanResponseDto(plan));
+
+    return successResponse(
+      'Plans retrieved successfully',
+      plans.map((plan) => new PlanResponseDto(plan)),
+    );
   }
 
   @Get(':code')
