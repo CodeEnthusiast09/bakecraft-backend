@@ -23,7 +23,7 @@ export class TenantController {
     );
 
     return successResponse(
-      `Tenant '${createTenantDto.company_name}' and User created successfully`,
+      `'${createTenantDto.company_name}' created successfully`,
       {
         tenant: new TenantResponseDto(result.tenant),
         user: new UserResponseDto(result.user),

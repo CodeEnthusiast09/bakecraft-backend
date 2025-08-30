@@ -8,6 +8,16 @@ export class TenancyMiddleware implements NestMiddleware {
 
     // use this "/\/tenants\/([^/]+)/" for if /tenants/:tenantId might appear later in the path (because of versioning, prefixes, etc.)
 
+    /* IF I WANT TO USE HEADERS */
+
+    // let tenantId = match?.[1];
+
+    // if (!tenantId && req.headers['x-tenant-id']) {
+    //   tenantId = req.headers['x-tenant-id'] as string;
+    // }
+
+    // req.tenantId = tenantId ?? null;
+
     req.tenantId = match?.[1] ?? null;
     next();
   }

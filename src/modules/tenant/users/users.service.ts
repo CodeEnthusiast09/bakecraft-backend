@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { SignUpDto } from '../auth/dto/sign-up.dto';
 import * as bcrypt from 'bcrypt';
 import { CONNECTION } from 'src/modules/tenancy/tenancy.symbol';
@@ -29,5 +29,30 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepo.findOne({ where: { email } });
+  }
+
+  async getPersonalDetails(userId: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async updatePersonalDetails(
+    userId: string,
+    updateData: Partial<User>,
+  ): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    Object.assign(user, updateData);
+
+    return this.userRepo.save(user);
   }
 }

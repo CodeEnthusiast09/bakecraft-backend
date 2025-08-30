@@ -14,6 +14,7 @@ import { SubscriptionResponseDto } from './dtos/responses/subscription-response.
 import { PaystackWebhookPayload } from 'src/types/paystack-api-types';
 import { WebhookGuard } from 'src/common/guards/webhook.guard';
 import { Public } from 'src/common/decorators/public.decorator';
+import { ApiResponse, successResponse } from 'src/common/utils/response.helper';
 
 @Controller('subscriptions')
 export class SubscriptionController {
@@ -22,10 +23,12 @@ export class SubscriptionController {
   @Post('initialize')
   async initializeSubscription(
     @Body() initializeSubscriptionDto: InitializeSubscriptionDto,
-  ): Promise<InitializeSubscriptionResponseDto> {
-    return await this.subscriptionService.initializeSubscription(
+  ): Promise<ApiResponse<InitializeSubscriptionResponseDto>> {
+    const response = await this.subscriptionService.initializeSubscription(
       initializeSubscriptionDto,
     );
+
+    return successResponse('Subscription initiated successfully', response);
   }
 
   @Get('tenant/:tenantId')
