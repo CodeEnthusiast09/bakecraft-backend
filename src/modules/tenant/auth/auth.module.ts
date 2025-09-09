@@ -8,6 +8,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { JWTStrategy } from './strategies/jwt.strategy';
+import { EmailService } from '../email/email.service';
+import { TenantService } from '../tenant.service';
 
 @Module({
   imports: [
@@ -17,7 +19,7 @@ import { JWTStrategy } from './strategies/jwt.strategy';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('secret'),
         signOptions: {
-          expiresIn: '1d',
+          // expiresIn: '5d',
         },
       }),
       inject: [ConfigService],
@@ -25,6 +27,12 @@ import { JWTStrategy } from './strategies/jwt.strategy';
     PassportModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, UsersService, JWTStrategy],
+  providers: [
+    AuthService,
+    UsersService,
+    EmailService,
+    JWTStrategy,
+    TenantService,
+  ],
 })
 export class AuthModule {}

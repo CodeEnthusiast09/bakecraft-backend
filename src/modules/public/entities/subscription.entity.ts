@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { Plan } from './plan.entity';
 import { AbstractEntity } from 'src/abstract.entity';
-import { Tenant } from './tenants.entity';
+import { Tenant } from './tenant.entity';
 import { SubscriptionStatus } from 'src/common/enums';
 
 @Entity('subscriptions')

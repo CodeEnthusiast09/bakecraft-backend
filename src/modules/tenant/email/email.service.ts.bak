@@ -1,0 +1,143 @@
+import { Injectable } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
+import { ConfigService } from '@nestjs/config';
+import { EmailDto } from './dto/email.dto';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as Handlebars from 'handlebars';
+
+@Injectable()
+export class EmailService {
+  constructor(private configService: ConfigService) {}
+
+  emailTransport() {
+    const transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('email.host'),
+      port: this.configService.get<number>('email.port'),
+      secure: true, // true for 465, false for other ports (587)
+      auth: {
+        user: this.configService.get<string>('email.user'),
+        pass: this.configService.get<string>('email.pass'),
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+    return transporter;
+  }
+
+  private getTemplatesDir() {
+    return path.join(process.cwd(), 'src/modules/tenant/email/templates');
+  }
+
+  private compileTemplate(templateName: string, context: any): string {
+    const templatesDir = this.getTemplatesDir();
+    const templatePath = path.join(templatesDir, `${templateName}.hbs`);
+    const layoutPath = path.join(templatesDir, 'layout.hbs');
+
+    const templateSource = fs.readFileSync(templatePath, 'utf8');
+    const layoutSource = fs.readFileSync(layoutPath, 'utf8');
+
+    const template = Handlebars.compile(templateSource);
+    const layout = Handlebars.compile(layoutSource);
+
+    const body = template(context);
+    return layout({ body, year: new Date().getFullYear() });
+  }
+
+  async sendEmail(dto: EmailDto) {
+    const transporter = this.emailTransport();
+
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: this.configService.get<string>('email.user'),
+      to: dto.recipients,
+      subject: dto.subject,
+      text: dto.text,
+      html: dto.html,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      return { message: 'Email sent successfully' };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to send email: ${error.message}`);
+      }
+      throw new Error(`Failed to send email: ${String(error)}`);
+    }
+  }
+
+  async sendActivationEmail(
+    id: string,
+    first_name: string,
+    email: string,
+    token: string,
+  ) {
+    const frontEndUrl = this.configService.get<string>('frontendUrl');
+
+    const activationUrl = `${frontEndUrl}/activate?staff=${encodeURIComponent(
+      id,
+    )}&token=${encodeURIComponent(token)}`;
+
+    const html = this.compileTemplate('activation', {
+      first_name,
+      activationUrl,
+    });
+
+    const mailOptions = {
+      from: `"Bakecraft" <${this.configService.get<string>('email.user')}>`,
+      to: email,
+      subject: 'Activate Your Account',
+      html,
+      attachments: [
+        {
+          filename: 'logo.png',
+          path: path.join(this.getTemplatesDir(), 'logo.png'),
+          cid: 'logo',
+        },
+      ],
+    };
+
+    const transporter = this.emailTransport();
+    await transporter.sendMail(mailOptions);
+  }
+
+  async sendWelcomeEmail(
+    email: string,
+    first_name: string,
+    tenantSlug: string,
+  ) {
+    const loginUrl = `https://bakecraft.com/${tenantSlug}/login`;
+    const html = this.compileTemplate('welcome', {
+      first_name,
+      loginUrl,
+      email,
+    });
+
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: `"Bakecraft" <${this.configService.get<string>('email.user')}>`,
+      to: email,
+      subject: 'Welcome to Bakecraft 🎉',
+      html,
+      attachments: [
+        {
+          filename: 'logo.png',
+          path: path.join(this.getTemplatesDir(), 'logo.png'),
+          cid: 'logo',
+        },
+      ],
+    };
+
+    const transporter = this.emailTransport();
+
+    try {
+      await transporter.sendMail(mailOptions);
+      return { message: 'Welcome email sent successfully' };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to send welcome email: ${error.message}`);
+      }
+      throw new Error(`Failed to send email: ${String(error)}`);
+    }
+  }
+}

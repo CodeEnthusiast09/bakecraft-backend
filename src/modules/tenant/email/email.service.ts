@@ -1,111 +1,150 @@
-import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
+import * as path from 'path';
 import { EmailDto } from './dto/email.dto';
 
 @Injectable()
 export class EmailService {
-  constructor(private configService: ConfigService) {}
-  emailTransport() {
-    const transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('EMAIL_HOST'),
-      port: this.configService.get<number>('EMAIL_PORT'),
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: this.configService.get<string>('EMAIL_USER'),
-        pass: this.configService.get<string>('EMAIL_PASS'),
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
-    return transporter;
+  private readonly logger = new Logger(EmailService.name);
+
+  constructor(
+    private readonly mailerService: MailerService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  private async sleep(ms: number) {
+    return new Promise((res) => setTimeout(res, ms));
   }
 
-  async sendEmail(dto: EmailDto) {
-    const transporter = this.emailTransport();
+  /**
+   * Small exponential-backoff retry wrapper for transient SMTP failures.
+   * Adjust retries or move to job/queue for larger volume.
+   */
+  private async sendMailWithRetry(
+    mailOptions: Parameters<MailerService['sendMail']>[0],
+    retries = 3,
+  ) {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        await this.mailerService.sendMail(mailOptions);
+        return;
+      } catch (err) {
+        lastError = err;
+        this.logger.warn(
+          `sendMail attempt ${attempt + 1} failed: ${(err as Error)?.message || err}`,
+        );
+        // If last attempt, break and throw after loop
+        if (attempt < retries - 1) {
+          await this.sleep(1000 * Math.pow(2, attempt)); // 1s, 2s, 4s
+        }
+      }
+    }
+    this.logger.error('All email retries failed', lastError as Error);
+    throw lastError;
+  }
 
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: this.configService.get<string>('EMAIL_USER'),
+  async sendGenericEmail(dto: EmailDto) {
+    const mailOptions = {
       to: dto.recipients,
       subject: dto.subject,
       text: dto.text,
       html: dto.html,
+      from: this.configService.get<string>('email.from'),
     };
-
-    try {
-      await transporter.sendMail(mailOptions);
-      return { message: 'Email sent successfully' };
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to send email: ${error.message}`);
-      }
-      throw new Error(`Failed to send email: ${String(error)}`);
-    }
+    return this.sendMailWithRetry(mailOptions);
   }
 
-  async sendActivationEmail(email: string, token: string) {
-    const activationUrl = `${this.configService.get<string>('FRONT_END_URL')}/activate?token=${token}`;
+  /**
+   * Activation email: uses template `activation.hbs` in templates dir.
+   * The adapter (configured in app.module) will render the template and layout.
+   */
+  async sendActivationEmail(
+    id: string,
+    firstName: string,
+    recipientEmail: string,
+    tenantSlug: string,
+    token: string,
+  ) {
+    const frontEndUrl =
+      this.configService.get<string>('frontendUrl') || 'https://bakecraft.com';
 
-    // Using nodemailer example
+    const activationUrl = `${frontEndUrl}/${tenantSlug}/activate-account?key=${encodeURIComponent(token)}&staff=${encodeURIComponent(id)}`;
+
     const mailOptions = {
-      from: this.configService.get<string>('EMAIL_USER'),
-      to: email,
-      subject: 'Activate Your Account',
-      html: `
-        <h2>Welcome!</h2>
-        <p>Click the link below to activate your account:</p>
-        <a href="${activationUrl}">Activate Account</a>
-        <p>This link expires in 24 hours.</p>
-      `,
+      to: recipientEmail,
+      subject: 'Activate Your Bakecraft Account',
+      template: 'activation', // activation.hbs
+      context: {
+        firstName,
+        activationUrl,
+        year: new Date().getFullYear(),
+      },
+      attachments: [
+        {
+          filename: 'logo-white.png',
+          path: path.join(
+            process.cwd(),
+            'src/modules/tenant/email/templates/assets/logo-white.png',
+          ),
+          cid: 'logo', // referenced in template as <img src="cid:logo"/>
+        },
+      ],
     };
 
-    const transporter = this.emailTransport();
-    await transporter.sendMail(mailOptions);
+    return this.sendMailWithRetry(mailOptions);
   }
 
   async sendWelcomeEmail(
-    email: string,
-    first_name: string,
+    recipientEmail: string,
+    firstName: string,
     tenantSlug: string,
   ) {
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: this.configService.get<string>('EMAIL_USER'),
-      to: email,
+    const frontEndUrl =
+      this.configService.get<string>('frontendUrl') || 'https://bakecraft.com';
+    const loginUrl = `${frontEndUrl}/${tenantSlug}/login`;
+
+    const mailOptions = {
+      to: recipientEmail,
       subject: 'Welcome to Bakecraft 🎉',
-      html: `
-    <h2>Hello ${first_name},</h2>
-    <p>Welcome to <strong>Bakecraft</strong>! We're thrilled to have you on board.</p>
-
-    <p>You can now explore our platform, set up your shop, and start baking with success 🚀</p>
-
-    <p>
-      To log in anytime, simply visit your bakery's login page:<br/>
-      <a href="https://bakecraft.com/${tenantSlug}/login" target="_blank">
-        https://bakecraft.com/${tenantSlug}/login
-      </a>
-    </p>
-
-    <p><strong>Your login email:</strong> ${email}</p>
-
-    <p>If you ever need help, feel free to contact our support team.</p>
-
-    <br/>
-    <p>Cheers,</p>
-    <p>The Bakecraft Team</p>
-  `,
+      template: 'welcome', // welcome.hbs
+      context: {
+        firstName,
+        loginUrl,
+        email: recipientEmail,
+      },
+      attachments: [
+        {
+          filename: 'logo-white.png',
+          path: path.join(
+            process.cwd(),
+            'src/modules/tenant/email/templates/assets/logo-white.png',
+          ),
+          cid: 'logo',
+        },
+      ],
     };
 
-    const transporter = this.emailTransport();
-
-    try {
-      await transporter.sendMail(mailOptions);
-      return { message: 'Welcome email sent successfully' };
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to send welcome email: ${error.message}`);
-      }
-      throw new Error(`Failed to send welcome email: ${String(error)}`);
-    }
+    return this.sendMailWithRetry(mailOptions);
   }
+
+  // Optional: close transporter pools on shutdown
+  // MailerService wraps Nodemailer; some versions expose a transporter instance.
+  // We try to close it gracefully if available (nodemailer transporter.close()).
+  //   onModuleDestroy() {
+  //     try {
+  //       const mailerAny = this.mailerService as any;
+  //       const transport = mailerAny?.transporter ?? mailerAny?.transporter; // tolerate naming
+  //       if (transport && typeof transport.close === 'function') {
+  //         transport.close();
+  //         this.logger.log('Mailer transporter pool closed.');
+  //       }
+  //     } catch (err) {
+  //       this.logger.warn(
+  //         'Could not close mailer transporter automatically.',
+  //         err as Error,
+  //       );
+  //     }
+  //   }
 }

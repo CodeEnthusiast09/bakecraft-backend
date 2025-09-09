@@ -46,14 +46,14 @@ Content-Type: application/json
 
 ### Send Email
 
-POST http://localhost:3000/tenants/e9399241-db00-447d-b206-5d155b4a361c/email/send-email
+POST http://localhost:3000/tenants/3688f012-609e-4700-bfa8-327025200f82/email/send-email
 Content-Type: application/json
 x-api-key: cbaf3b6f-8c16-4066-9107-eb270a2bb3ba
 
 {
   "recipients": ["obrienadedapo09@gmail.com"],
   "subject": "Test Email",
-  "html": "Rlxk",
+  "html": "App passwords help you sign into your Google Account on older apps and services that don’t support modern security standards. App passwords are less secure than using up-to-date apps and services that use modern security standards. Before you create an app password, you should check to see if your app needs this in order to sign in.",
   "text": "This is a test email sent from the Nestjs application. It is sent using the Nodemailer package."
 }
 

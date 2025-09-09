@@ -1,7 +1,7 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { tenantConfig } from '../tenant/tenant-orm.config';
 import { publicConfig } from '../public/public-orm.config';
-import { Tenant } from '../public/entities/tenants.entity';
+import { Tenant } from '../public/entities/tenant.entity';
 
 const connectionCache: Record<string, DataSource> = {};
 
@@ -11,7 +11,7 @@ const mainDataSource = new DataSource({
   name: 'main',
 } as DataSourceOptions);
 
-async function getTenantDbName(tenantId: string): Promise<string> {
+async function getTenantSchema(tenantId: string): Promise<string> {
   if (!mainDataSource.isInitialized) {
     await mainDataSource.initialize();
   }
@@ -33,20 +33,20 @@ async function getTenantDbName(tenantId: string): Promise<string> {
 export async function getTenantConnection(
   tenantId: string,
 ): Promise<DataSource> {
-  const dbName = await getTenantDbName(tenantId);
+  const schema = await getTenantSchema(tenantId);
 
-  if (connectionCache[dbName] && connectionCache[dbName].isInitialized) {
-    return connectionCache[dbName];
+  if (connectionCache[schema] && connectionCache[schema].isInitialized) {
+    return connectionCache[schema];
   }
 
   const dataSource = new DataSource({
     ...tenantConfig,
-    database: dbName,
+    schema: schema,
     name: `tenant-${tenantId}`,
   } as DataSourceOptions);
 
   await dataSource.initialize();
-  connectionCache[dbName] = dataSource;
+  connectionCache[schema] = dataSource;
 
   return dataSource;
 }

@@ -4,7 +4,7 @@ import { SubscriptionController } from './subscription.controller';
 import { SubscriptionService } from './subscription.service';
 import { Subscription } from '../entities/subscription.entity';
 import { Plan } from '../entities/plan.entity';
-import { Tenant } from '../entities/tenants.entity';
+import { Tenant } from '../entities/tenant.entity';
 import { PaystackModule } from '../paystack/paystack.module';
 
 @Module({

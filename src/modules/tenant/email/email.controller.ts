@@ -8,7 +8,7 @@ export class EmailController {
 
   @Post('send-email')
   async sendEmail(@Body() dto: EmailDto) {
-    await this.emailService.sendEmail(dto);
+    await this.emailService.sendGenericEmail(dto);
     return { message: 'Email sent successfully' };
   }
 }

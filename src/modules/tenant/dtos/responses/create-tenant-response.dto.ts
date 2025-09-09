@@ -1,6 +1,6 @@
 import { Expose } from 'class-transformer';
 import { BaseResponseDto } from './base-response.dto';
-import { Tenant } from 'src/modules/public/entities/tenants.entity';
+import { Tenant } from 'src/modules/public/entities/tenant.entity';
 import { TenantStatus } from 'src/common/enums';
 
 export class TenantResponseDto extends BaseResponseDto {

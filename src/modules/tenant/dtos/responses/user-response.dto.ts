@@ -1,6 +1,8 @@
 import { Expose } from 'class-transformer';
 import { BaseResponseDto } from './base-response.dto';
 import { User } from '../../entities/user.entity';
+import { RoleResponseDto } from './role-response.dto';
+import { DepartmentResponseDto } from './department-response.dto';
 
 export class UserResponseDto extends BaseResponseDto {
   @Expose()
@@ -14,6 +16,15 @@ export class UserResponseDto extends BaseResponseDto {
 
   @Expose()
   phone_number: string;
+
+  @Expose()
+  role: RoleResponseDto | null;
+
+  @Expose()
+  department: DepartmentResponseDto | null;
+
+  @Expose()
+  invited_by: UserResponseDto | null;
 
   constructor(entity: User) {
     super();
@@ -29,6 +40,16 @@ export class UserResponseDto extends BaseResponseDto {
 
     this.email = entity.email;
 
+    this.role = entity.role ? new RoleResponseDto(entity.role) : null;
+
+    this.department = entity.department
+      ? new DepartmentResponseDto(entity.department)
+      : null;
+
     this.phone_number = entity.phone_number;
+
+    this.invited_by = entity.invited_by
+      ? new UserResponseDto(entity.invited_by)
+      : null;
   }
 }

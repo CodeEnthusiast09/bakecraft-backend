@@ -3,7 +3,7 @@ import { AbstractEntity } from 'src/abstract.entity';
 import { Subscription } from './subscription.entity';
 import { TenantStatus } from 'src/common/enums';
 
-@Entity({ schema: 'public', name: 'tenants' })
+@Entity({ name: 'tenants' })
 export class Tenant extends AbstractEntity {
   @Column({ unique: true })
   company_name: string;

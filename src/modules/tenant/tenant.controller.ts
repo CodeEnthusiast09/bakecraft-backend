@@ -1,9 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto } from './dtos/create-tenant.dto';
-import { SignUpDto } from './auth/dto/sign-up.dto';
 import { TenantResponseDto } from './dtos/responses/create-tenant-response.dto';
-import { UserResponseDto } from './dtos/responses/user-response.dto';
 import { successResponse, ApiResponse } from 'src/common/utils/response.helper';
 
 @Controller('tenants')
@@ -12,22 +10,13 @@ export class TenantController {
 
   @Post()
   async createTenant(
-    @Body('tenant') createTenantDto: CreateTenantDto,
-    @Body('user') signUpDto: SignUpDto,
-  ): Promise<
-    ApiResponse<{ tenant: TenantResponseDto; user: UserResponseDto }>
-  > {
-    const result = await this.tenantService.createTenant(
-      createTenantDto,
-      signUpDto,
-    );
+    @Body() createTenantDto: CreateTenantDto,
+  ): Promise<ApiResponse<TenantResponseDto>> {
+    const result = await this.tenantService.createTenant(createTenantDto);
 
     return successResponse(
       `'${createTenantDto.company_name}' created successfully`,
-      {
-        tenant: new TenantResponseDto(result.tenant),
-        user: new UserResponseDto(result.user),
-      },
+      result,
     );
   }
 
