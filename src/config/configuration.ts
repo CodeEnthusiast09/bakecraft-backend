@@ -6,6 +6,7 @@ export default () => ({
   secret: process.env.SECRET,
 
   database: {
+    url: process.env.DB_URL,
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT ?? '5432'),
     user: process.env.DB_USENAME,

@@ -31,7 +31,8 @@ import * as path from 'path';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '.env.local'],
+      // envFilePath: ['.env', '.env.local'],
+      envFilePath: [`${process.cwd()}/.env.${process.env.NODE_ENV}`],
       load: [configuration],
       validate: validate,
     }),

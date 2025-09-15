@@ -18,6 +18,7 @@ export const publicTypeOrmAsyncConfig: TypeOrmModuleAsyncOptions = {
   ): Promise<TypeOrmModuleOptions> => {
     return {
       type: 'postgres',
+      url: configService.get<string>('database.url'),
       host: configService.get<string>('database.host'),
       port: configService.get<number>('database.port'),
       username: configService.get<string>('database.user'),
@@ -26,12 +27,14 @@ export const publicTypeOrmAsyncConfig: TypeOrmModuleAsyncOptions = {
       entities: ['dist/src/modules/public/entities/*.entity.js'],
       migrations: ['dist/src/modules/public/migrations/*.js'],
       synchronize: false,
+      ssl: { rejectUnauthorized: false },
     };
   },
 };
 
 export const publicConfig: DataSourceOptions = {
   type: 'postgres',
+  url: process.env.DB_URL,
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT ?? '5432'),
   username: process.env.DB_USENAME,
@@ -42,6 +45,7 @@ export const publicConfig: DataSourceOptions = {
   entities: ['dist/src/modules/public/entities/*.entity.js'],
   migrations: ['dist/src/modules/public/migrations/*.js'],
   synchronize: false,
+  ssl: { rejectUnauthorized: false },
 };
 
 const publicDatasource = new DataSource(publicConfig);
