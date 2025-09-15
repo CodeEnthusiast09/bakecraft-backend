@@ -15,6 +15,7 @@ import { getTenantConnection } from 'src/modules/tenancy/tenancy.utils';
 import { Tenant } from 'src/modules/public/entities/tenant.entity';
 import publicDatasource from 'src/modules/public/public-orm.config';
 import { Department } from '../entities/department.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
@@ -24,6 +25,7 @@ export class UsersService {
     @Inject(CONNECTION)
     private readonly connection: DataSource,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {
     this.userRepo = this.connection.getRepository(User);
   }
@@ -95,6 +97,35 @@ export class UsersService {
     const user = userRepo.create(userData);
 
     const savedUser = await userRepo.save(user);
+
+    // if (userCount === 0) {
+    //   await this.notificationsService.create(
+    //     {
+    //       message: `${savedUser.first_name} created the tenant workspace`,
+    //       type: 'user_signup',
+    //       recipientId: null,
+    //       triggeredBy: savedUser.id,
+    //     },
+    //     tenant.id,
+    //   );
+    // }
+
+    if (userCount === 0) {
+      const notif = await this.notificationsService.create(
+        {
+          message: `${savedUser.first_name} created the tenant workspace`,
+          type: 'user_signup',
+          recipientId: null,
+          triggeredBy: savedUser.id,
+        },
+        tenant.id,
+      );
+
+      console.log(
+        'Notification emitted (signup):',
+        JSON.stringify(notif, null, 2),
+      );
+    }
 
     if (userCount === 0 && tenantSlug && signUpDto.first_name) {
       await this.emailService.sendWelcomeEmail(

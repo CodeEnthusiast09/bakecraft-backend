@@ -15,6 +15,7 @@ import { EmailService } from '../email/email.service';
 import { ActivateAccountDto } from '../dtos/activate-account.dto';
 import { TenantService } from '../tenant.service';
 import { PayloadType } from './interface/payload-types';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface ActivationTokenPayload {
   email: string;
@@ -30,6 +31,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     private readonly tenantService: TenantService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async signUp(dto: SignUpDto, tenantId: string) {
@@ -147,6 +149,16 @@ export class AuthService {
       );
 
       invitedUsers.push(updatedUser);
+
+      await this.notificationsService.create(
+        {
+          message: `You have invited ${updatedUser.first_name} to join`,
+          type: 'user_invite',
+          recipientId: null,
+          triggeredBy: userId,
+        },
+        tenantId,
+      );
     }
 
     return invitedUsers;

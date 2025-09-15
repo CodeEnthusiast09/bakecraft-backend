@@ -4,7 +4,7 @@ import { SignUpDto } from './dto/sign-up.dto';
 import { ApiResponse, successResponse } from 'src/common/utils/response.helper';
 import { UserResponseDto } from '../dtos/responses/user-response.dto';
 import { LoginDto } from './dto/log-in.dto';
-import { InviteUserDto, InviteUsersDto } from '../dtos/invite-user.dto';
+import { InviteUsersDto } from '../dtos/invite-user.dto';
 import { ActivateAccountDto } from '../dtos/activate-account.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { PayloadType } from './interface/payload-types';

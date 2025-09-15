@@ -10,6 +10,7 @@ import { UsersService } from '../users/users.service';
 import { JWTStrategy } from './strategies/jwt.strategy';
 import { EmailService } from '../email/email.service';
 import { TenantService } from '../tenant.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { TenantService } from '../tenant.service';
     EmailService,
     JWTStrategy,
     TenantService,
+    NotificationsService,
   ],
 })
 export class AuthModule {}

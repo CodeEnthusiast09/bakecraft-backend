@@ -4,11 +4,11 @@ export class CreateNotificationDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  recipientId?: string;
+  recipientId?: string | null;
 
   @IsString()
   @IsNotEmpty()
-  triggeredBy?: string;
+  triggeredBy?: string | null;
 
   @IsString()
   @IsNotEmpty()

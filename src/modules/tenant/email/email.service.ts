@@ -113,6 +113,7 @@ export class EmailService {
         firstName,
         loginUrl,
         email: recipientEmail,
+        year: new Date().getFullYear(),
       },
       attachments: [
         {

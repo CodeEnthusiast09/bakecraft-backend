@@ -1,6 +1,5 @@
 import { Expose } from 'class-transformer';
 import { Notification } from '../../entities/notification.entity';
-import { BaseResponseDto } from '../../dtos/responses/base-response.dto';
 
 export class NotificationResponseDto {
   @Expose()
@@ -26,6 +25,7 @@ export class NotificationResponseDto {
     this.type = entity.type;
 
     this.isRead = entity.isRead;
+
     if (entity.triggeredBy) {
       this.triggeredBy = {
         id: entity.triggeredBy.id,

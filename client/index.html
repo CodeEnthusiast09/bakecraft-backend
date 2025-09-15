@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SSE Test</title>
+  </head>
+  <body>
+    <h1>SSE Notifications Stream</h1>
+    <pre id="log"></pre>
+
+    <script>
+      const log = document.getElementById('log');
+
+      // 👇 Replace with your actual tenantId and API key
+      const tenantId = '90bc33fe-9cb7-4064-ace7-571f81d7e986';
+      // const apiKey = "cbaf3b6f-8c16-4066-9107-eb270a2bb3ba";
+
+      const evtSource = new EventSource(
+        `http://localhost:3000/tenants/${tenantId}/notifications/stream`,
+        { withCredentials: false },
+      );
+
+      evtSource.onmessage = function (event) {
+        log.textContent += `Default message: ${event.data}\n\n`;
+        console.log('Default message:', event.data);
+      };
+
+      evtSource.addEventListener('notification', function (event) {
+        log.textContent += `🔔 Notification: ${event.data}\n\n`;
+        console.log('Notification event:', event.data);
+      });
+
+      evtSource.onerror = function (err) {
+        log.textContent += `❌ Error: ${JSON.stringify(err)}\n\n`;
+        console.error('SSE error', err);
+      };
+    </script>
+  </body>
+</html>
