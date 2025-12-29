@@ -1,98 +1,200 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Bakecraft - Multitenancy Bakery Management SaaS
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A production-ready multitenancy SaaS platform for bakery operations management. Features tenant isolation, team collaboration with role-based access control, real-time notifications, email workflows, and Paystack subscription handling.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Overview
 
-## Description
+Bakecraft demonstrates enterprise architecture patterns in a full-stack NestJS application. Built for scalability with tenant-based data isolation, it provides bakeries with tools to manage their operations, teams, and subscriptions through a unified platform.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Core Features
 
-## Project setup
+### Multitenancy Architecture
+Complete tenant isolation with dynamic tenant context injection. Each bakery operates in its own isolated environment while sharing the same infrastructure. Tenant identification via slug-based routing ensures clean separation of data and operations.
 
-```bash
-$ npm install
+### Authentication & Authorization
+- JWT-based authentication with secure password handling
+- Role-based access control system for granular permissions management
+- User invitation workflow with token-based account setup
+- Supports multiple users per tenant with department-level organization
+
+### Subscription Management
+- Full Paystack integration for payment processing
+- Automated plan synchronization from Paystack
+- Webhook-based subscription lifecycle management
+- Support for multiple pricing tiers with feature gating
+
+### Email System
+- Configurable SMTP integration with connection pooling
+- Automated notification workflows for key events
+- Template-based email system for consistent communication
+
+### Real-time Notifications
+- Server-sent events (SSE) for live notification streaming
+- In-app notification system with read/unread tracking
+- Per-user notification channels with tenant isolation
+
+### Team Management
+- Department-based organization structure
+- Role assignment and management
+- User profile management
+- Team invitation system
+
+## Tech Stack
+
+- **Backend Framework**: NestJS with TypeScript for type-safe, modular architecture
+- **Database**: PostgreSQL with TypeORM for robust data management and migrations
+- **Authentication**: JWT tokens with Passport.js integration
+- **Payment Processing**: Paystack API integration for subscriptions and billing
+- **Email Service**: Nodemailer with Gmail SMTP support and connection pooling
+- **Architecture Patterns**: Dependency injection, repository pattern, service layer separation, module-based organization
+
+## Project Structure
+
+The application follows NestJS module architecture with clear separation of concerns. Core modules include:
+
+- Tenant management
+- Authentication
+- User management
+- Subscription handling
+- Notification system
+- Email service
+- Roles and permissions
+- Department organization
+
+Each module is self-contained with its own controllers, services, and data access layers.
+
+## API Endpoints
+
+### Tenant Management
+
+- `POST /tenants` - Create new tenant organization
+- `GET /tenants/:slug` - Retrieve tenant by slug
+
+### Authentication (Tenant-scoped)
+
+- `POST /tenants/:tenantId/auth/signup` - User registration
+- `POST /tenants/:tenantId/auth/login` - User authentication
+- `POST /tenants/:tenantId/auth/invite` - Invite team member
+- `POST /tenants/:tenantId/auth/resolve-token` - Validate invitation token
+- `POST /tenants/:tenantId/auth/set-password` - Set password for invited user
+
+### User Management
+
+- `GET /tenants/:tenantId/profile/personal-details` - Get user profile
+- `PATCH /tenants/:tenantId/profile/personal-details` - Update profile
+
+### Subscriptions
+
+- `POST /subscriptions/initialize` - Initialize subscription payment
+- `GET /subscriptions/tenant/:tenantId` - Get tenant subscriptions
+- `DELETE /subscriptions/:id` - Cancel subscription
+- `POST /subscriptions/webhook` - Paystack webhook handler
+
+### Notifications
+
+- `GET /tenants/:tenantId/notifications/stream` - SSE notification stream
+- `GET /tenants/:tenantId/notifications` - Get all notifications
+- `PATCH /tenants/:tenantId/notifications/:notificationId/read` - Mark as read
+- `GET /tenants/:tenantId/notifications/unread-count` - Get unread count
+
+### Organization
+
+- `POST /tenants/:tenantId/roles` - Create role
+- `GET /tenants/:tenantId/roles/selections` - Get available roles
+- `POST /tenants/:tenantId/departments` - Create department
+- `GET /tenants/:tenantId/departments/selections` - Get departments
+
+### Plans
+
+- `GET /plans` - List all subscription plans
+- `GET /plans/:code` - Get specific plan
+- `POST /plans/sync` - Sync plans from Paystack
+
+## Environment Setup
+
+Create a `.env` file with the following variables:
+
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+FRONT_END_URL=http://localhost:3001
+
+# Security
+SECRET=your_jwt_secret_key_here
+API_KEY=your_api_key_here
+
+# Database Configuration
+DB_URL=postgresql://username:password@host:port/database?sslmode=require
+DB_HOST=your_database_host
+DB_PORT=5432
+DB_USERNAME=your_database_username
+DB_PWD=your_database_password
+DB_NAME=your_database_name
+
+# Email Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=your_email@gmail.com
+EMAIL_FROM="Your App Name" <your_email@gmail.com>
+EMAIL_PASS=your_app_specific_password
+EMAIL_POOL=true
+EMAIL_MAX_CONNECTIONS=5
+EMAIL_MAX_MESSAGES=100
+
+# Paystack Configuration
+PAYSTACK_BASE_URL=https://api.paystack.co
+PAYSTACK_CALLBACK_URL=http://localhost:3001/create-account/subscription-success
+PAYSTACK_PUBLIC_KEY=pk_test_your_public_key
+PAYSTACK_SECRET_KEY=sk_test_your_secret_key
 ```
 
-## Compile and run the project
+## Installation & Running
 
 ```bash
-# development
-$ npm run start
+# Install dependencies
+npm install
 
-# watch mode
-$ npm run start:dev
+# Run in development mode
+npm run start:dev
 
-# production mode
-$ npm run start:prod
+# Run in production mode
+npm run build
+npm run start:prod
 ```
 
-## Run tests
+The application will start on `http://localhost:3000` (or your configured PORT). You should see module initialization logs followed by "Application is running on port: 3000".
 
-```bash
-# unit tests
-$ npm run test
+## Key Technical Implementations
 
-# e2e tests
-$ npm run test:e2e
+### Tenant Context Management
+- Custom tenant context provider that injects tenant information throughout the request lifecycle
+- Middleware-based tenant resolution from URL parameters
+- Global tenant guards ensuring operations stay within tenant boundaries
 
-# test coverage
-$ npm run test:cov
-```
+### Database Architecture
+- Shared database with tenant_id foreign keys for data isolation
+- TypeORM entities with tenant relationships
+- Migration system for schema management
 
-## Deployment
+### Security Measures
+- JWT token validation on protected routes
+- Password hashing with bcrypt
+- API key authentication for external integrations
+- Rate limiting and CORS configuration
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Scalability Considerations
+- Connection pooling for database and email
+- Async processing for notifications
+- Modular architecture allowing horizontal scaling
+- Stateless API design for load balancing
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Development Status
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+This is a production-ready MVP with core features fully implemented. The multitenancy architecture, authentication system, subscription management, and notification system are all functional and tested. 
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**License**: MIT  
+**Author**: Me
