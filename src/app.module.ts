@@ -23,6 +23,7 @@ import { NotificationsModule } from './modules/tenant/notifications/notification
 import { DepartmentModule } from './modules/tenant/departments/departments.module';
 import { RolesModule } from './modules/tenant/roles/roles.module';
 import { SelectionsModule } from './modules/tenant/selections/selections.module';
+import { ProductionModule } from './modules/tenant/production/production.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import * as path from 'path';
@@ -95,6 +96,7 @@ import * as path from 'path';
     RolesModule,
     DepartmentModule,
     SelectionsModule,
+    ProductionModule,
   ],
   controllers: [TenantController],
   providers: [

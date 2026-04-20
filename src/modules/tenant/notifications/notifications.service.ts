@@ -206,10 +206,13 @@ export class NotificationsService {
     }
   }
 
-  async findForUser(): Promise<Notification[]> {
+  async findForUser(userId?: string): Promise<Notification[]> {
     try {
+      const where = userId
+        ? [{ recipient: { id: userId } }, { recipient: IsNull() }]
+        : [{ recipient: IsNull() }];
       return await this.notificationRepo.find({
-        where: [{ recipient: IsNull() }],
+        where,
         order: { created_at: 'DESC' },
         relations: ['recipient', 'triggeredBy'],
       });
@@ -239,22 +242,19 @@ export class NotificationsService {
   async markAllAsRead(userId: string) {
     return this.notificationRepo.update(
       [
-        { recipient: { id: userId } },
-        { recipient: IsNull() },
-        { isRead: false },
+        { recipient: { id: userId }, isRead: false },
+        { recipient: IsNull(), isRead: false },
       ],
       { isRead: true },
     );
   }
 
-  async getUnreadCount(): Promise<{ count: number }> {
-    const unreadCount = await this.notificationRepo.count({
-      where: [
-        // { recipient: { id: userId } },
-        // { recipient: IsNull() },
-        { isRead: false },
-      ],
-    });
+  async getUnreadCount(userId?: string): Promise<{ count: number }> {
+    const where = userId
+      ? [{ recipient: { id: userId }, isRead: false }, { recipient: IsNull(), isRead: false }]
+      : [{ isRead: false }];
+
+    const unreadCount = await this.notificationRepo.count({ where });
 
     return { count: unreadCount };
   }

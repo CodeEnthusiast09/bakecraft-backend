@@ -80,10 +80,13 @@ import {
   Body,
   Get,
   Patch,
-  Headers,
   Res,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { PayloadType } from '../auth/interface/payload-types';
 import { Observable } from 'rxjs';
 import { startWith, tap } from 'rxjs/operators';
 import { Response } from 'express';
@@ -171,14 +174,24 @@ export class NotificationsController {
     return this.notificationsService.create(dto, tenantId);
   }
 
-  // Fetch notifications for a user
+  // Fetch notifications for the current user (own + broadcasts)
   @Get()
+  @UseGuards(JwtAuthGuard)
   async findForUser(
-    @Param('userId') userId: string,
+    @GetUser() user: PayloadType,
   ): Promise<ApiResponse<Notification[]>> {
-    const userNotif = await this.notificationsService.findForUser();
-
+    const userNotif = await this.notificationsService.findForUser(user.userId);
     return successResponse('Notification retrieved successfully', userNotif);
+  }
+
+  // Get unread count — must be before :notificationId routes to avoid param capture
+  @Get('unread-count')
+  @UseGuards(JwtAuthGuard)
+  async getUnreadCount(
+    @GetUser() user: PayloadType,
+  ): Promise<ApiResponse<{ count: number }>> {
+    const count = await this.notificationsService.getUnreadCount(user.userId);
+    return successResponse('Unread count retrieved successfully', count);
   }
 
   // Mark one as read
@@ -188,24 +201,17 @@ export class NotificationsController {
   ): Promise<ApiResponse<Notification>> {
     const isMarkedRead =
       await this.notificationsService.markAsRead(notificationId);
-
     return successResponse('Notification marked as read', isMarkedRead);
   }
 
-  // Mark all as read
-  @Patch(':userId/read-all')
-  markAllAsRead(@Param('userId') userId: string) {
-    return this.notificationsService.markAllAsRead(userId);
-  }
-
-  // Get unread count
-  @Get('/unread-count')
-  async getUnreadCount(
-    @Param('userId') userId: string,
-  ): Promise<ApiResponse<{ count: number }>> {
-    const count = await this.notificationsService.getUnreadCount();
-
-    return successResponse('Unread count retrieved successfully', count);
+  // Mark all as read for the current user
+  @Patch('read-all')
+  @UseGuards(JwtAuthGuard)
+  async markAllAsRead(
+    @GetUser() user: PayloadType,
+  ): Promise<ApiResponse> {
+    await this.notificationsService.markAllAsRead(user.userId);
+    return successResponse('All notifications marked as read');
   }
 
   // Manual test endpoint
