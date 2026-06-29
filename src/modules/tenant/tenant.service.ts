@@ -63,7 +63,7 @@ export class TenantService implements OnModuleInit {
 
       savedTenant = await this.dataSource.manager.save(tenant);
 
-      const tenantDs = await getTenantConnection(savedTenant.id);
+      const tenantDs = await getTenantConnection(savedTenant.slug);
 
       await seedRoleAndDept(tenantDs);
 
