@@ -39,7 +39,7 @@ export class UsersService {
       throw new NotFoundException('Tenant not found');
     }
 
-    const tenantDs = await getTenantConnection(tenant.id);
+    const tenantDs = await getTenantConnection(tenant.slug);
 
     const userRepo = tenantDs.getRepository(User);
 

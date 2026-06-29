@@ -218,7 +218,7 @@ export class NotificationsController {
   // Manual test endpoint
   @Post('test')
   @Public()
-  testNotification(@Param('tenantId') tenantId: string) {
+  testNotification(@TenantId() tenantId: string) {
     this.logger.log(`🧪 Creating test notification for tenant: ${tenantId}`);
     return this.notificationsService.create(
       {
@@ -234,7 +234,7 @@ export class NotificationsController {
   // Debug endpoint to check channel status
   @Get('debug/channel-status')
   @Public()
-  getChannelStatus(@Param('tenantId') tenantId: string) {
+  getChannelStatus(@TenantId() tenantId: string) {
     return this.notificationsService.getChannelStatus(tenantId);
   }
 }
