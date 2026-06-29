@@ -7,7 +7,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { PayloadType } from '../auth/interface/payload-types';
 import { ApiResponse, successResponse } from 'src/common/utils/response.helper';
 
-@Controller('tenants/:tenantId/profile')
+@Controller('profile')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

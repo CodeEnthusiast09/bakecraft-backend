@@ -6,7 +6,7 @@ import { ApiResponse, successResponse } from 'src/common/utils/response.helper';
 import { SelectionsService } from './selections.service';
 import { SelectionResponseDto } from '../dtos/responses/selection-response.dto';
 
-@Controller('tenants/:tenantId/selections')
+@Controller('selections')
 @UseGuards(JwtAuthGuard)
 export class SelectionsController {
   constructor(private readonly selectionsService: SelectionsService) {}

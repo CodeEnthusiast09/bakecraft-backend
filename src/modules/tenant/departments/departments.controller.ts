@@ -7,7 +7,7 @@ import { DepartmentsService } from './departments.service';
 import { DepartmentResponseDto } from '../dtos/responses/department-response.dto';
 import { CreateDepartmentDto } from '../dtos/create-department.dto';
 
-@Controller('tenants/:tenantId/departments')
+@Controller('departments')
 @UseGuards(JwtAuthGuard)
 export class DepartmentController {
   constructor(private readonly departmentsService: DepartmentsService) {}

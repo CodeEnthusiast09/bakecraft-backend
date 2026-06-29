@@ -29,7 +29,7 @@ import {
   CreateProductionShiftDto,
 } from './dto/create-production-shift.dto';
 
-@Controller('tenants/:tenantId/production')
+@Controller('production')
 @UseGuards(JwtAuthGuard)
 export class ProductionController {
   constructor(private readonly productionService: ProductionService) {}

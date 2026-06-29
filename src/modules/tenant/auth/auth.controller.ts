@@ -11,7 +11,7 @@ import { PayloadType } from './interface/payload-types';
 import { GetUser } from './decorators/get-user.decorator';
 import { TenantId } from 'src/common/decorators/tenant.decorator';
 
-@Controller('/tenants/:tenantId/auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

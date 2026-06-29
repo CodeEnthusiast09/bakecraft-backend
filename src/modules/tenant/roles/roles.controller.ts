@@ -7,7 +7,7 @@ import { CreateRoleDto } from '../dtos/create-role.dto';
 import { ApiResponse, successResponse } from 'src/common/utils/response.helper';
 import { RoleResponseDto } from '../dtos/responses/role-response.dto';
 
-@Controller('tenants/:tenantId/roles')
+@Controller('roles')
 @UseGuards(JwtAuthGuard)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}

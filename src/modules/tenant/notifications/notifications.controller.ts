@@ -14,7 +14,7 @@
 // import { TenantId } from 'src/common/decorators/tenant.decorator';
 // import { Public } from 'src/common/decorators/public.decorator';
 
-// @Controller('tenants/:tenantId/notifications')
+// @Controller('notifications')
 // export class NotificationsController {
 //   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -96,8 +96,9 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { ApiResponse, successResponse } from 'src/common/utils/response.helper';
 import { NotificationResponseDto } from './dtos/notification-response.dto';
 import { Notification } from '../entities/notification.entity';
+import { TenantId } from 'src/common/decorators/tenant.decorator';
 
-@Controller('tenants/:tenantId/notifications')
+@Controller('notifications')
 export class NotificationsController {
   private readonly logger = new Logger(NotificationsController.name);
 
@@ -107,7 +108,7 @@ export class NotificationsController {
   @Sse('stream')
   @Public()
   stream(
-    @Param('tenantId') tenantId: string,
+    @TenantId() tenantId: string,
     @Res({ passthrough: true }) res: Response,
   ): Observable<MessageEvent> {
     this.logger.log(`🔌 SSE connection established for tenant: ${tenantId}`);
@@ -141,7 +142,7 @@ export class NotificationsController {
   @Sse('simple-stream')
   @Public()
   simpleStream(
-    @Param('tenantId') tenantId: string,
+    @TenantId() tenantId: string,
     @Res({ passthrough: true }) res: Response,
   ): Observable<MessageEvent> {
     this.logger.log(`🔌 Simple SSE connection for tenant: ${tenantId}`);
@@ -168,7 +169,7 @@ export class NotificationsController {
   @Post()
   create(
     @Body() dto: CreateNotificationDto,
-    @Param('tenantId') tenantId: string,
+    @TenantId() tenantId: string,
   ) {
     this.logger.log(`📝 Creating notification for tenant: ${tenantId}`);
     return this.notificationsService.create(dto, tenantId);

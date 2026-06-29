@@ -34,8 +34,8 @@ export class AuthService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async signUp(dto: SignUpDto, tenantId: string) {
-    const tenant = await this.tenantService.getTenantById(tenantId);
+  async signUp(dto: SignUpDto, tenantSlug: string) {
+    const tenant = await this.tenantService.getTenantBySlug(tenantSlug);
 
     const user = await this.usersService.create(dto, tenant.slug);
 
@@ -65,11 +65,11 @@ export class AuthService {
   async invite(
     userId: string,
     dto: InviteUserDto,
-    tenantId: string,
+    tenantSlug: string,
   ): Promise<User> {
     const existing = await this.usersService.findByEmail(dto.email);
 
-    const tenant = await this.tenantService.getTenantById(tenantId);
+    const tenant = await this.tenantService.getTenantBySlug(tenantSlug);
 
     if (existing) {
       throw new BadRequestException(
@@ -109,14 +109,14 @@ export class AuthService {
   async inviteMultiple(
     userId: string,
     dto: InviteUsersDto,
-    tenantId: string,
+    tenantSlug: string,
   ): Promise<User[]> {
     const invitedUsers: User[] = [];
 
     for (const invite of dto.invites) {
       const existing = await this.usersService.findByEmail(invite.email);
 
-      const tenant = await this.tenantService.getTenantById(tenantId);
+      const tenant = await this.tenantService.getTenantBySlug(tenantSlug);
 
       if (existing) {
         throw new BadRequestException(
@@ -157,7 +157,7 @@ export class AuthService {
           recipientId: null,
           triggeredBy: userId,
         },
-        tenantId,
+        tenantSlug,
       );
     }
 

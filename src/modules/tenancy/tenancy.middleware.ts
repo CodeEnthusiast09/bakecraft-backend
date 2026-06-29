@@ -4,21 +4,22 @@ import { Request, Response, NextFunction } from 'express';
 @Injectable()
 export class TenancyMiddleware implements NestMiddleware {
   use(req: Request, _res: Response, next: NextFunction) {
-    const match = (req.originalUrl || req.url).match(/^\/tenants\/([^/]+)/);
+    const host = (req.headers['host'] || '') as string;
+    const isLocal =
+      host.includes('localhost') || host.includes('127.0.0.1');
 
-    // use this "/\/tenants\/([^/]+)/" for if /tenants/:tenantId might appear later in the path (because of versioning, prefixes, etc.)
+    let tenantSlug: string | null = null;
 
-    /* IF I WANT TO USE HEADERS */
+    if (isLocal) {
+      tenantSlug = (req.headers['x-tenant-slug'] as string) || null;
+    } else {
+      const parts = host.split('.');
+      if (parts.length >= 3) {
+        tenantSlug = parts[0];
+      }
+    }
 
-    // let tenantId = match?.[1];
-
-    // if (!tenantId && req.headers['x-tenant-id']) {
-    //   tenantId = req.headers['x-tenant-id'] as string;
-    // }
-
-    // req.tenantId = tenantId ?? null;
-
-    req.tenantId = match?.[1] ?? null;
+    req.tenantId = tenantSlug;
     next();
   }
 }
