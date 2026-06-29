@@ -11,29 +11,26 @@ const mainDataSource = new DataSource({
   name: 'main',
 } as DataSourceOptions);
 
-async function getTenantSchema(tenantId: string): Promise<string> {
+async function getTenantSchema(tenantSlug: string): Promise<string> {
   if (!mainDataSource.isInitialized) {
     await mainDataSource.initialize();
   }
 
   const tenant = await mainDataSource.getRepository(Tenant).findOne({
-    where: { id: tenantId },
+    where: { slug: tenantSlug },
   });
 
   if (!tenant) {
-    throw new Error(`Tenant with id ${tenantId} not found`);
+    throw new Error(`Tenant not found`);
   }
 
-  const slug =
-    tenant.slug ?? tenant.company_name.toLowerCase().replace(/\s+/g, '_');
-
-  return `tenant_${slug}`;
+  return `tenant_${tenant.slug}`;
 }
 
 export async function getTenantConnection(
-  tenantId: string,
+  tenantSlug: string,
 ): Promise<DataSource> {
-  const schema = await getTenantSchema(tenantId);
+  const schema = await getTenantSchema(tenantSlug);
 
   if (connectionCache[schema] && connectionCache[schema].isInitialized) {
     return connectionCache[schema];
@@ -41,8 +38,8 @@ export async function getTenantConnection(
 
   const dataSource = new DataSource({
     ...tenantConfig,
-    schema: schema,
-    name: `tenant-${tenantId}`,
+    schema,
+    name: `tenant-${tenantSlug}`,
   } as DataSourceOptions);
 
   await dataSource.initialize();
